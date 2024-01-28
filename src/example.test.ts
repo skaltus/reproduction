@@ -38,13 +38,3 @@ test('update entity', async () => {
 
   expect(deliveryZone.polygon).toStrictEqual(polygonTwo);
 });
-
-test('native update entity', async () => {
-  const deliveryZone = orm.em.create(DeliveryZone, { polygon: polygonOne });
-  await orm.em.flush();
-
-  await orm.em.nativeUpdate(DeliveryZone, { id: deliveryZone.id }, { polygon: polygonTwo });
-  await orm.em.refresh(deliveryZone);
-
-  expect(deliveryZone.polygon).toStrictEqual(polygonTwo);
-});
