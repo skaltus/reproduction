@@ -1,34 +1,50 @@
-import { MikroORM } from '@mikro-orm/sqlite';
-import { User } from './user.entity';
+import { MikroORM } from '@mikro-orm/postgresql';
+import { StartedTestContainer } from 'testcontainers';
+import { DeliveryZone } from './delivery-zone.entity';
+import { polygonOne, polygonTwo } from './polygons';
+import runPostgresPostgisContainer from './run.postgres-postgis.container';
 
 let orm: MikroORM;
+let dbContainer: StartedTestContainer;
 
 beforeAll(async () => {
+  const { container, connectionString } = await runPostgresPostgisContainer();
+  dbContainer = container;
   orm = await MikroORM.init({
-    dbName: 'sqlite.db',
+    clientUrl: connectionString,
     entities: ['dist/**/*.entity.js'],
     entitiesTs: ['src/**/*.entity.ts'],
     debug: ['query', 'query-params'],
-    allowGlobalContext: true, // only for testing
+    allowGlobalContext: true,
   });
   await orm.schema.refreshDatabase();
 });
 
 afterAll(async () => {
   await orm.close(true);
+  await dbContainer.stop();
 });
 
-test('basic CRUD example', async () => {
-  orm.em.create(User, { name: 'Foo', email: 'foo' });
-  await orm.em.flush();
-  orm.em.clear();
+beforeEach(async () => {
+  await orm.schema.clearDatabase();
+});
 
-  const user = await orm.em.findOneOrFail(User, { email: 'foo' });
-  expect(user.name).toBe('Foo');
-  user.name = 'Bar';
-  orm.em.remove(user);
+test('update entity', async () => {
+  const deliveryZone = orm.em.create(DeliveryZone, { polygon: polygonOne });
   await orm.em.flush();
 
-  const count = await orm.em.count(User, { email: 'foo' });
-  expect(count).toBe(0);
+  deliveryZone.polygon = polygonTwo;
+  await orm.em.flush();
+
+  expect(deliveryZone.polygon).toStrictEqual(polygonTwo);
+});
+
+test('native update entity', async () => {
+  const deliveryZone = orm.em.create(DeliveryZone, { polygon: polygonOne });
+  await orm.em.flush();
+
+  await orm.em.nativeUpdate(DeliveryZone, { id: deliveryZone.id }, { polygon: polygonTwo });
+  await orm.em.refresh(deliveryZone);
+
+  expect(deliveryZone.polygon).toStrictEqual(polygonTwo);
 });
