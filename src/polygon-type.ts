@@ -1,27 +1,15 @@
-import { Type } from '@mikro-orm/core';
+import { JsonType } from '@mikro-orm/core';
 
-export interface GeoJSONPolygon {
-  type: 'Polygon';
+export class GeoJSONPolygon {
+  type = 'Polygon';
   coordinates: number[][][];
+  
+  constructor(coordinates: number[][][]) {
+    this.coordinates = coordinates;
+  }
 }
 
-export class GeoJSONPolygonType extends Type<GeoJSONPolygon | undefined, string | undefined> {
-  convertToDatabaseValue(polygon: GeoJSONPolygon | undefined): string | undefined {
-    if (!polygon) {
-      return undefined;
-    }
-    return JSON.stringify(polygon);
-  }
-
-  convertToJSValue(value: string | undefined): GeoJSONPolygon | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    const polygon = JSON.parse(value) as GeoJSONPolygon;
-    return polygon;
-  }
-
+export class GeoJSONPolygonType extends JsonType {
   convertToJSValueSQL(key: string) {
     return `ST_AsGeoJSON(${key},15)`;
   }

@@ -26,15 +26,47 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  orm.em.clear();
   await orm.schema.clearDatabase();
 });
 
 test('update entity', async () => {
   const deliveryZone = orm.em.create(DeliveryZone, { polygon: polygonOne });
   await orm.em.flush();
-
+  
   deliveryZone.polygon = polygonTwo;
   await orm.em.flush();
 
   expect(deliveryZone.polygon).toStrictEqual(polygonTwo);
+});
+
+test('native update entity', async () => {
+  const deliveryZone = orm.em.create(DeliveryZone, { polygon: polygonOne });
+  await orm.em.flush();
+  
+  deliveryZone.polygon = polygonTwo;
+  await orm.em.nativeUpdate(DeliveryZone, { id: deliveryZone.id }, { polygon: polygonTwo });
+  await orm.em.refresh(deliveryZone);
+
+  expect(deliveryZone.polygon).toStrictEqual(polygonTwo);
+});
+
+test('create entity', async () => {
+  const deliveryZone = orm.em.create(DeliveryZone, { polygon: polygonOne });
+  await orm.em.flush();
+
+  expect(deliveryZone).toMatchObject({
+    id: expect.any(Number),
+    polygon: polygonOne,
+  });
+});
+
+test('fetch entity', async () => {
+  const deliveryZone = orm.em.create(DeliveryZone, { polygon: polygonOne });
+  await orm.em.flush();
+  await orm.em.clear();
+  
+  const refetchedDeliveryZone = await orm.em.findOneOrFail(DeliveryZone, deliveryZone.id);
+
+  expect(deliveryZone).toStrictEqual(refetchedDeliveryZone);
 });
